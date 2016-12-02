@@ -42,8 +42,8 @@ namespace PasDependency
      * 
      * *******************************************************************************/
 
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple=true)]
-    public class DependentPropertyAttribute: Attribute
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
+    public class DependentPropertyAttribute : Attribute
     {
         public string PropertyGroup { get; set; }
 
@@ -63,19 +63,23 @@ namespace PasDependency
                 propertyGroup = String.Empty;
             }
             var type = caller.GetType();
-            var dependentProperties = type.GetProperties()
+            var dependentProperties = type.GetRuntimeProperties()
                 .Where(p => p.GetCustomAttributes(false)
                     .Any(a => a.GetType() == typeof(DependentPropertyAttribute) && (
                         String.IsNullOrEmpty(propertyGroup) || (a as DependentPropertyAttribute).PropertyGroup.Equals(propertyGroup)
                         )
                         ));
 
+            MethodInfo mi = null;
             foreach (var prop in dependentProperties)
             {
                 //System.Diagnostics.Debug.WriteLine(prop.Name);
 
+                if (mi == null)
+                {
+                    mi = type.GetRuntimeMethods().FirstOrDefault(m => m.Name.Equals("OnPropertyChanged"));
+                }
                 // Invoke OnPropertyChanged on caller instance
-                MethodInfo mi = type.GetMethod("OnPropertyChanged");
                 if (mi != null)
                     mi.Invoke(caller, new string[] { prop.Name });
             }
